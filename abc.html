@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aztec Hangman Game</title>
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+        background-color: #fafafa;
+        overflow-x: hidden;
+        /* Remove overflow hidden on y-axis so user can scroll if needed */
+    }
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* Align top */
+        gap: 12px;
+        padding: 8px 10px;
+        box-sizing: border-box;
+        min-height: 100vh;
+        /* Remove overflow hidden to allow scroll */
+    }
+
+    #left-meme {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      height: 60vh;
+      width: auto;
+      object-fit: contain;
+      user-select: none;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    #right-meme {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      height: 60vh;
+      width: auto;
+      object-fit: contain;
+      user-select: none;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    #main-container {
+        max-width: 600px;
+        width: 90vw;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-sizing: border-box;
+    }
+
+    header img {
+        width: 140px;
+        max-width: 80vw;
+        margin: 6px 0;
+        user-select: none;
+    }
+    canvas {
+        border: 1px solid #333;
+        margin-top: 12px;
+        width: 90vw;
+        max-width: 180px;
+        height: auto;
+        flex-shrink: 0;
+    }
+    #word {
+        font-size: 1.5rem;
+        letter-spacing: 6px;
+        margin-top: 12px;
+        max-width: 90vw;
+        word-wrap: break-word;
+        user-select: none;
+    }
+    #hint {
+        font-size: 1.1rem;
+        color: purple;
+        margin-top: 6px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        user-select: none;
+    }
+    #guesses-left {
+        margin-top: 4px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        user-select: none;
+        width: 100%;
+        max-width: 600px;
+        text-align: center;
+    }
+    .result-message {
+        font-size: 1.3rem;
+        color: #333;
+        min-height: 2em;
+        user-select: none;
+        text-align: center;
+        margin: 0;
+    }
+    .keyboard {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        max-width: 600px;
+        gap: 6px;
+        flex-shrink: 0;
+        width: 100%;
+    }
+    .keyboard button {
+        margin: 0;
+        padding: 6px 10px;
+        font-size: 1rem;
+        cursor: pointer;
+        background-color: purple;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        transition: background-color 0.3s, opacity 0.3s;
+        min-width: 36px;
+        max-width: 40px;
+        user-select: none;
+        flex: 1 0 9%;
+        outline-offset: 2px;
+    }
+    .keyboard button:focus-visible {
+        outline: 3px solid #4CAF50;
+    }
+    .keyboard button:hover:not(:disabled) {
+        background-color: darkmagenta;
+    }
+    .wrong {
+        background-color: red !important;
+        color: white !important;
+        text-decoration: line-through;
+        opacity: 0.6;
+    }
+    .correct {
+        background-color: darkgreen !important;
+        color: white !important;
+        opacity: 0.8;
+    }
+    .keyboard button:disabled {
+        cursor: default;
+        opacity: 0.5;
+    }
+    #play-again, #next-word {
+        margin: 6px 6px 12px 6px;
+        padding: 8px 16px;
+        font-size: 1rem;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        display: none;
+        user-select: none;
+        background-color: #4CAF50;
+        color: white;
+        transition: background-color 0.3s;
+        max-width: 90vw;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    #play-again:hover, #next-word:hover {
+        background-color: #45a049;
+    }
+    #buttons-container {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: nowrap;
+        width: 100%;
+        max-width: 320px;
+        margin-top: 4px;
+    }
+    #streak {
+        margin-top: 4px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #333;
+        min-height: 1.5em;
+        max-width: 90vw;
+        word-wrap: break-word;
+        user-select: none;
+        flex-shrink: 0;
+        padding-bottom: 4px;
+        text-align: center;
+        width: 100%;
+        max-width: 600px;
+    }
+    #game-middle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      max-width: 600px;
+      min-height: 230px;
+      transition: all 0.3s ease;
+    }
+    #keyboard-instruction-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    #game-middle.playing {
+      justify-content: center;
+    }
+    #game-middle.game-over {
+      justify-content: flex-start;
+    }
+    #game-middle.game-over .result-message {
+      order: 1;
+      margin-bottom: 6px;
+    }
+    #game-middle.game-over #keyboard-instruction-wrapper {
+      order: 2;
+      margin-top: 12px;
+    }
+    .instruction {
+        font-size: 0.9rem;
+        color: black;
+        margin-top: 6px;
+        user-select: none;
+        font-style: italic;
+        max-width: 600px;
+        text-align: center;
+        width: 100%;
+    }
+    @keyframes confetti {
+        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(100px) rotate(360deg); opacity: 0; }
+    }
+    .confetti-piece {
+        position: fixed;
+        width: 8px;
+        height: 8px;
+        background-color: #4CAF50;
+        animation: confetti 1.5s forwards;
+        pointer-events: none;
+        z-index: 9999;
+    }
+    #follow-link {
+      position: fixed;
+      bottom: 10px;        /* 10px from bottom */
+      left: 50%;           /* position left edge at 50% viewport width */
+      transform: translateX(-50%);  /* shift left by 50% of its own width to center */
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: purple;
+      text-decoration: none;
+      background-color: #f0f0f0;
+      padding: 10px 16px;
+      border-radius: 8px;
+      box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+      transition: background-color 0.3s, color 0.3s;
+      z-index: 10000;
+      user-select: none;
+    }
+
+    #follow-link:hover {
+      background-color: purple;
+      color: white;
+    }
+
+    /* Congrats popup styles */
+    #congrats-popup {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: none; /* hidden by default */
+      align-items: center;
+      justify-content: center;
+      z-index: 100000;
+      user-select: none;
+    }
+
+    #congrats-content {
+      background: white;
+      border-radius: 12px;
+      padding: 20px 30px;
+      max-width: 90vw;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    #congrats-content h2 {
+      margin-top: 0;
+    }
+
+    #congrats-content button {
+      margin: 10px 8px 0 8px;
+      padding: 8px 16px;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background-color: #1DA1F2;  /* Twitter blue */
+      color: white;
+      transition: background-color 0.3s;
+    }
+
+    #congrats-content button:hover {
+      background-color: #0d8ddb;
+    }
+</style>
+</head>
+<body>
+  <!-- Left meme image -->
+  <img src="left-meme.png" alt="Left Meme" id="left-meme" />
+
+  <div id="main-container">
+    <header>
+        <img src="images.png" alt="Aztec Banner" />
+    </header>
+
+    <canvas id="hangman" width="200" height="200"></canvas>
+
+    <div id="word"></div>
+    <div id="hint"></div>
+    <div id="guesses-left"></div>
+
+    <div id="game-middle" class="playing">
+      <div id="keyboard-instruction-wrapper">
+        <div class="keyboard"></div>
+        <div class="instruction">
+          You can also play using your physical keyboard — no need to click!
+        </div>
+      </div>
+      <div class="result-message" id="result-message"></div>
+    </div>
+
+    <div id="buttons-container">
+        <button id="play-again">Play Again</button>
+        <button id="next-word">Next ▶️</button>
+    </div>
+
+    <div id="streak">Streak: 0</div>
+
+    <a href="https://x.com/Nepalikanchhaa" target="_blank" id="follow-link">Follow me</a>
+  </div>
+
+  <!-- Right meme image -->
+  <img src="right-meme.png" alt="Right Meme" id="right-meme" />
+
+  <!-- Congrats popup -->
+  <div id="congrats-popup" aria-modal="true" role="dialog" aria-labelledby="congrats-title" aria-describedby="congrats-desc">
+    <div id="congrats-content">
+      <h2 id="congrats-title">🎉 Congratulations! 🎉</h2>
+      <p id="congrats-desc">
+        You completed all words with a perfect streak of <span id="final-streak"></span>!
+      </p>
+      <button id="share-twitter">Share on X (Twitter)</button>
+      <button id="close-popup">Close</button>
+    </div>
+  </div>
+
+<script>
+    const words = [
+        "NOIR", "MINT", "BURN", "SWAP", "ZAC", "PRIVACY",
+        "CONNECT", "PLONK", "ADVERSARIAL", "ZKPASSPORT", "TOWNHALL",
+        "ENCRYPTION", "ZERO", "ETHEREUM"
+    ];
+
+    const hints = {
+        NOIR: "A programming language developed by Aztec for privacy-focused smart contracts.",
+        MINT: "To create new tokens or coins in a blockchain.",
+        BURN: "To destroy tokens, removing them from circulation.",
+        SWAP: "An exchange of assets or tokens.",
+        CONNECT: "Action to link your wallet to a dApp or platform.",
+        ZAC: "CEO of Aztec Labs and co-inventor of PLONK",
+        PLONK: "A zk-SNARK proof system co-invented by Zac Williamson.",
+        ADVERSARIAL: "Aztec current testnet.",
+        PRIVACY: "The state of being free from public attention.",
+        ZKPASSPORT: "Noir based Aztec application that proves your identity without revealing it.",
+        TOWNHALL: "Aztec discord AMA is called?",
+        ENCRYPTION: "The process of encoding messages or information.",
+        ZERO: "_____ KNOWLEDGE",
+        ETHEREUM: "Aztec is an L2 on _________"
+    };
+
+    let selectedWord, guessedLetters, wrongGuesses;
+    let streak = 0;
+    let gameOver = false;
+
+    let remainingWords = shuffle([...words]);
+
+    const wordDiv = document.getElementById("word");
+    const hintDiv = document.getElementById("hint");
+    const guessesLeftDiv = document.getElementById("guesses-left");
+    const keyboardDiv = document.querySelector(".keyboard");
+    const canvas = document.getElementById("hangman");
+    const ctx = canvas.getContext("2d");
+    const playAgainBtn = document.getElementById("play-again");
+    const nextWordBtn = document.getElementById("next-word");
+    const resultMessageDiv = document.getElementById("result-message");
+    const streakDiv = document.getElementById("streak");
+    const gameMiddle = document.getElementById("game-middle");
+
+    // Congrat popup elements
+    const congratsPopup = document.getElementById("congrats-popup");
+    const finalStreakSpan = document.getElementById("final-streak");
+    const shareBtn = document.getElementById("share-twitter");
+    const closeBtn = document.getElementById("close-popup");
+
+    const gallows = () => {
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(10, 190);
+        ctx.lineTo(190, 190);
+        ctx.moveTo(50, 190);
+        ctx.lineTo(50, 20);
+        ctx.lineTo(120, 20);
+        ctx.lineTo(120, 40);
+        ctx.stroke();
+    };
+
+    const parts = [
+        () => { ctx.beginPath(); ctx.arc(120, 50, 10, 0, Math.PI * 2); ctx.stroke(); },
+        () => { ctx.beginPath(); ctx.moveTo(120, 60); ctx.lineTo(120, 100); ctx.stroke(); },
+        () => { ctx.beginPath(); ctx.moveTo(120, 70); ctx.lineTo(100, 90); ctx.stroke(); },
+        () => { ctx.beginPath(); ctx.moveTo(120, 70); ctx.lineTo(140, 90); ctx.stroke(); },
+        () => { ctx.beginPath(); ctx.moveTo(120, 100); ctx.lineTo(100, 130); ctx.stroke(); },
+        () => { ctx.beginPath(); ctx.moveTo(120, 100); ctx.lineTo(140, 130); ctx.stroke(); }
+    ];
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function startGame(keepStreak = false) {
+        if (remainingWords.length === 0) {
+            remainingWords = shuffle([...words]);
+        }
+        selectedWord = remainingWords.shift();
+
+        guessedLetters = [];
+        wrongGuesses = 0;
+        gameOver = false;
+
+        wordDiv.textContent = "_ ".repeat(selectedWord.length);
+        hintDiv.textContent = "Hint: " + (hints[selectedWord] || "No hint available.");
+        guessesLeftDiv.textContent = `Wrong guesses left: ${parts.length - wrongGuesses}`;
+
+        keyboardDiv.innerHTML = "";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        gallows();
+
+        playAgainBtn.style.display = "none";
+        nextWordBtn.style.display = "none";
+        resultMessageDiv.textContent = "";
+
+        if (!keepStreak) streak = 0;
+        updateStreak();
+
+        congratsPopup.style.display = "none"; // hide congrats popup on new game
+
+        gameMiddle.classList.remove("game-over");
+        gameMiddle.classList.add("playing");
+
+        for (let i = 65; i <= 90; i++) {
+            const btn = document.createElement("button");
+            btn.textContent = String.fromCharCode(i);
+            btn.addEventListener("click", () => guessLetter(btn));
+            keyboardDiv.appendChild(btn);
+        }
+    }
+
+    function updateWord() {
+        let display = "";
+        let won = true;
+        for (let char of selectedWord) {
+            if (guessedLetters.includes(char)) {
+                display += char + " ";
+            } else {
+                display += "_ ";
+                won = false;
+            }
+        }
+        wordDiv.textContent = display.trim();
+        if (won) endGame(true);
+    }
+
+    function guessLetter(button) {
+        if (gameOver) return;
+        const letter = button.textContent;
+        if (button.disabled) return;
+        button.disabled = true;
+        if (selectedWord.includes(letter)) {
+            guessedLetters.push(letter);
+            button.classList.add("correct");
+            updateWord();
+        } else {
+            button.classList.add("wrong");
+            wrongGuesses++;
+            parts[wrongGuesses - 1]();
+            guessesLeftDiv.textContent = `Wrong guesses left: ${parts.length - wrongGuesses}`;
+            if (wrongGuesses === parts.length) endGame(false);
+        }
+    }
+
+    function endGame(win) {
+        gameOver = true;
+        document.querySelectorAll(".keyboard button").forEach(b => b.disabled = true);
+        gameMiddle.classList.remove("playing");
+        gameMiddle.classList.add("game-over");
+
+        if (win) {
+            streak++;
+            updateStreak();
+            resultMessageDiv.textContent = "🎉 You win! Congratulations!";
+            resultMessageDiv.style.color = "green";
+            nextWordBtn.style.display = "inline-block";
+            animateConfetti();
+
+            checkForPerfectStreak(); // Check for perfect streak popup here
+        } else {
+            streak = 0;
+            updateStreak();
+            resultMessageDiv.textContent = `😞 Game over! The word was "${selectedWord}".`;
+            resultMessageDiv.style.color = "red";
+            playAgainBtn.style.display = "inline-block";
+        }
+    }
+
+    function updateStreak() {
+        streakDiv.textContent = `Streak: ${streak}`;
+        localStorage.setItem("aztecHangmanStreak", streak);
+    }
+
+    function loadStreak() {
+        const saved = localStorage.getItem("aztecHangmanStreak");
+        if (saved && !isNaN(saved)) {
+            streak = parseInt(saved, 10);
+            updateStreak();
+        }
+    }
+
+    function animateConfetti() {
+        const colors = ["#4CAF50", "#81C784", "#388E3C", "#66BB6A"];
+        for (let i = 0; i < 40; i++) {
+            const confetti = document.createElement("div");
+            confetti.classList.add("confetti-piece");
+            confetti.style.backgroundColor = colors[i % colors.length];
+            confetti.style.left = Math.random() * window.innerWidth + "px";
+            confetti.style.top = Math.random() * window.innerHeight / 2 + "px";
+            confetti.style.animationDelay = (i * 0.05) + "s";
+            document.body.appendChild(confetti);
+            setTimeout(() => confetti.remove(), 1500);
+        }
+    }
+
+    function checkForPerfectStreak() {
+      // Show congrats popup only if all words done AND streak equals total words length
+      if (remainingWords.length === 0 && streak === words.length) {
+        finalStreakSpan.textContent = streak;
+        congratsPopup.style.display = "flex";
+      }
+    }
+
+    shareBtn.addEventListener("click", () => {
+      const tweetText = encodeURIComponent(
+        `I just completed the Aztec Hangman game with a perfect streak of ${streak}! Try it out yourself! #AztecHangman`
+      );
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+      window.open(twitterUrl, "_blank");
+    });
+
+    closeBtn.addEventListener("click", () => {
+      congratsPopup.style.display = "none";
+    });
+
+    window.addEventListener("keydown", e => {
+        if (gameOver) {
+            if (e.key === "Enter") {
+                if (nextWordBtn.style.display === "inline-block") {
+                    nextWordBtn.click();
+                } else if (playAgainBtn.style.display === "inline-block") {
+                    playAgainBtn.click();
+                }
+            }
+            return;
+        }
+        const letter = e.key.toUpperCase();
+        if (letter >= 'A' && letter <= 'Z') {
+            document.querySelectorAll(".keyboard button").forEach(btn => {
+                if (btn.textContent === letter && !btn.disabled) {
+                    guessLetter(btn);
+                }
+            });
+        }
+    });
+
+    playAgainBtn.addEventListener("click", () => startGame(false));
+    nextWordBtn.addEventListener("click", () => startGame(true));
+
+    loadStreak();
+    startGame(false);
+</script>
+</body>
+</html>
