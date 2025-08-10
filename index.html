@@ -81,7 +81,7 @@
         user-select: none;
     }
     #hint {
-        font-size: 1.1rem;
+        font-size: 1.3rem;
         color: purple;
         margin-top: 6px;
         max-width: 600px;
@@ -250,27 +250,36 @@
         pointer-events: none;
         z-index: 9999;
     }
+    @keyframes glowGradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
     #follow-link {
       position: fixed;
-      bottom: 10px;        /* 10px from bottom */
-      left: 50%;           /* position left edge at 50% viewport width */
-      transform: translateX(-50%);  /* shift left by 50% of its own width to center */
+      top: 10px;
+      left: 90%;
       font-size: 1.2rem;
       font-weight: bold;
-      color: purple;
+      color: white;
       text-decoration: none;
-      background-color: #f0f0f0;
+      background: linear-gradient(270deg, purple, magenta, violet, purple);
+      background-size: 400% 400%;
+      animation: glowGradient 4s ease infinite;
       padding: 10px 16px;
       border-radius: 8px;
-      box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
-      transition: background-color 0.3s, color 0.3s;
+      box-shadow: 0 0 15px rgba(128, 0, 128, 0.8);
+      transition: background 0.3s, color 0.3s, animation 0.3s;
       z-index: 10000;
       user-select: none;
     }
 
     #follow-link:hover {
-      background-color: purple;
+      animation: none; /* Stop gradient animation */
+      background: purple; /* Solid purple */
       color: white;
+      box-shadow: 0 0 8px rgba(128, 0, 128, 0.6);
     }
 
     /* Congrats popup styles */
@@ -454,7 +463,7 @@
 
         wordDiv.textContent = "_ ".repeat(selectedWord.length);
         hintDiv.textContent = "Hint: " + (hints[selectedWord] || "No hint available.");
-        guessesLeftDiv.textContent = `Wrong guesses left: ${parts.length - wrongGuesses}`;
+        guessesLeftDiv.textContent = `Lives Remaining: ${parts.length - wrongGuesses} ❤︎`;
 
         keyboardDiv.innerHTML = "";
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -508,7 +517,7 @@
             button.classList.add("wrong");
             wrongGuesses++;
             parts[wrongGuesses - 1]();
-            guessesLeftDiv.textContent = `Wrong guesses left: ${parts.length - wrongGuesses}`;
+            guessesLeftDiv.textContent = `Lives Remaining: ${parts.length - wrongGuesses} ❤︎`;
             if (wrongGuesses === parts.length) endGame(false);
         }
     }
@@ -565,16 +574,21 @@
     }
 
     function checkForPerfectStreak() {
-      // Show congrats popup only if all words done AND streak equals total words length
-      if (remainingWords.length === 0 && streak === words.length) {
+      // Total words played so far = words.length - remainingWords.length
+      const wordsPlayed = words.length - remainingWords.length;
+      if (wordsPlayed === words.length && streak === words.length) {
         finalStreakSpan.textContent = streak;
         congratsPopup.style.display = "flex";
       }
     }
 
+
     shareBtn.addEventListener("click", () => {
       const tweetText = encodeURIComponent(
-        `I just completed the Aztec Hangman game with a perfect streak of ${streak}! Try it out yourself! #AztecHangman`
+        `🎯 Just scored a PERFECT STREAK in the Aztec Hangman Game! 🏆
+Think you can beat me? Test your Aztec knowledge & guess all the words before the hangman drops!
+
+🔗 Play now: https://nepali123.github.io/Aztec-hangman/`
       );
       const twitterUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
       window.open(twitterUrl, "_blank");
